@@ -1,11 +1,11 @@
 <!doctype html>
 <html itemscope="" itemtype="http://schema.org/WebPage" lang="en">
 	<head>
-		<title>Deepnest - Industrial nesting</title>
+		<title>Nestimate - The world, flat.</title>
 
 		<link type="text/css" rel="stylesheet" media="all" href="font/latolatinfonts.css" />
 		<link rel="stylesheet" type="text/css" href="style.css" />
-		
+
 		<script src="util/pathsegpolyfill.js"></script>
 		<script src="util/matrix.js"></script>
 		<script src="util/clipper.js"></script>
@@ -17,7 +17,7 @@
 		<script src="util/svgpanzoom.js"></script>
 		<script src="util/d3-polygon.js"></script>
 		<script src="util/simplify.js"></script>
-		
+
 		<script src="svgparser.js"></script>
 		<script src="deepnest.js"></script>
 
@@ -31,44 +31,44 @@
 				document.addEventListener('DOMContentLoaded', fn);
 			}
 		}
-		
+
 		const { ipcRenderer } = require('electron');
 		const fs = require('graceful-fs');
 		const request = require('request');
 		const http = require('http');
 		const path = require('path');
-		
+
 		ready(function(){
-			// main navigation			
+			// main navigation
 			var tabs = document.querySelectorAll('#sidenav li');
-			
+
 			Array.from(tabs).forEach(tab => {
 				tab.addEventListener('click', function(e) {
 					if(this.className == 'active' || this.className == 'disabled'){
 						return false;
 					}
-					
+
 					var activetab = document.querySelector('#sidenav li.active');
 					activetab.className = '';
-					
+
 					var activepage = document.querySelector('.page.active');
 					activepage.className = 'page';
-					
+
 					this.className = 'active';
 					tabpage = document.querySelector('#' + this.dataset.page);
 					tabpage.className = 'page active';
-					
+
 					if(tabpage.getAttribute('id') == 'home'){
 						resize();
 					}
 					return false;
 				});
 			});
-			
+
 			// config form
 			const config = require('electron-settings');
 			window.config = config;
-			
+
 			var defaultconfig = {
 			  units: 'inch',
 			  scale: 72, // actual stored value will be in units/inch
@@ -87,41 +87,41 @@
 			  endpointTolerance: 0.36,
 			  conversionServer: 'http://convert.deepnest.io'
 			};
-			
+
 			config.defaults(defaultconfig);
-			
+
 			const defaultConversionServer = 'http://convert.deepnest.io';
-			
+
 			// set to default if not set (for people with old configs stored)
 			for (var key in defaultconfig) {
 			  if(typeof config.getSync(key) === 'undefined'){
 			  	config.setSync(key, defaultconfig[key]);
 			  }
 			}
-			
+
 			config.get().then(val => {
 				window.DeepNest.config(val);
 				updateForm(val);
 			});
-			
+
 			var inputs = document.querySelectorAll('#config input, #config select');
-			
+
 			Array.from(inputs).forEach(i => {
 				i.addEventListener('change', function(e) {
-					
+
 					var val = i.value;
 					var key = i.getAttribute('data-config');
-					
-					if(key == 'scale'){					
+
+					if(key == 'scale'){
 						if(config.getSync('units') == 'mm'){
 							val *= 25.4; // store scale config in inches
 						}
 					}
-					
+
 					if(key == 'mergeLines' || key == 'simplify'){
 						val = i.checked;
 					}
-					
+
 					if(i.getAttribute('data-conversion') == 'true'){
 						// convert real units to svg units
 						var conversion = config.getSync('scale');
@@ -130,26 +130,26 @@
 						}
 						val *= conversion;
 					}
-					
+
 					// add a spinner during saving to indicate activity
 					i.parentNode.className = 'progress';
-					
+
 					config.set(key, val).then(() => {
 					    config.get().then(val => {
 							window.DeepNest.config(val);
 							updateForm(val);
-							
+
 							i.parentNode.className = '';
-							
+
 							if(key == 'units'){
 								ractive.update('getUnits');
 								ractive.update('dimensionLabel');
 							}
 						});
-					});			
+					});
 				});
 			});
-			
+
 			var setdefault = document.querySelector('#setdefault');
 			setdefault.onclick = function(e){
 				// don't reset user profile
@@ -164,23 +164,23 @@
 				});
 				return false;
 			}
-			
+
 			function updateForm(c){
-				var unitinput 
+				var unitinput
 				if(c.units == 'inch'){
 					unitinput = document.querySelector('#configform input[value=inch]');
 				}
 				else{
 					unitinput = document.querySelector('#configform input[value=mm]');
 				}
-				
+
 				unitinput.checked = true;
-				
+
 				var labels = document.querySelectorAll('span.unit-label');
 				Array.from(labels).forEach(l => {
 					l.innerText = c.units;
 				});
-				
+
 				var scale = document.querySelector('#inputscale');
 				if(c.units == 'inch'){
 					scale.value = c.scale;
@@ -189,12 +189,12 @@
 					// mm
 					scale.value = c.scale/25.4;
 				}
-				
+
 				/*var scaledinputs = document.querySelectorAll('[data-conversion]');
 				Array.from(scaledinputs).forEach(si => {
 					si.value = c[si.getAttribute('data-config')]/scale.value;
 				});*/
-				
+
 				var inputs = document.querySelectorAll('#config input, #config select');
 				Array.from(inputs).forEach(i => {
 					var key = i.getAttribute('data-config');
@@ -212,7 +212,7 @@
 					}
 				});
 			}
-			
+
 			document.querySelectorAll('#config input, #config select').forEach(function(e){
 				e.onmouseover = function(event){
 					var inputid = e.getAttribute('data-config');
@@ -220,21 +220,21 @@
 						document.querySelectorAll('.config_explain').forEach(function(el){
 							el.className = 'config_explain';
 						});
-						
+
 						var selected = document.querySelector('#explain_'+inputid);
 						if(selected){
 							selected.className = 'config_explain active';
 						}
 					}
 				}
-				
+
 				e.onmouseleave = function(event){
 					document.querySelectorAll('.config_explain').forEach(function(el){
 						el.className = 'config_explain';
 					});
 				}
 			});
-			
+
 			// add spinner element to each form dd
 			var dd = document.querySelectorAll('#configform dd');
 			Array.from(dd).forEach(d => {
@@ -242,15 +242,15 @@
 				spinner.className = 'spinner';
 				d.appendChild(spinner);
 			});
-			
+
 			// version info
 			var pjson = require('../package.json');
 			var version = document.querySelector('#package-version');
 			version.innerText = pjson.version;
-			
+
 			// part view
 			Ractive.DEBUG = false
-			
+
 			var label = Ractive.extend({
 			  template: '{{label}}',
 			  computed: {
@@ -259,10 +259,10 @@
 					var height = this.get('bounds').height;
 					var units = config.getSync('units');
 					var conversion = config.getSync('scale');
-					
+
 					// trigger computed dependency chain
 					this.get('getUnits');
-					
+
 					if(units == 'mm'){
 						return (25.4*(width/conversion)).toFixed(1) + 'mm x ' + (25.4*(height/conversion)).toFixed(1)+'mm';
 					}
@@ -272,7 +272,7 @@
 				  }
 			  }
 			});
-			
+
 			var ractive = new Ractive({
 				el: '#homecontent',
 				//magic: true,
@@ -300,7 +300,7 @@
 						svg.setAttribute('width', (part.bounds.width+10)+'px');
 						svg.setAttribute('height', (part.bounds.height+10)+'px');
 						svg.setAttribute('viewBox', (part.bounds.x-5)+' '+(part.bounds.y-5)+' '+(part.bounds.width+10)+' '+(part.bounds.height+10));
-												
+
 						part.svgelements.forEach(function(e){
 							svg.appendChild(e.cloneNode(false));
 						});
@@ -320,22 +320,22 @@
 				},
 				components: { dimensionLabel: label }
 			});
-			
+
 			var mousedown = 0;
-			document.body.onmousedown = function() { 
+			document.body.onmousedown = function() {
 			  mousedown = 1;
 			}
 			document.body.onmouseup = function() {
 			  mousedown = 0;
 			}
-			
+
 			var update = function(){
 				ractive.update('imports');
 				applyzoom();
 			}
-			
+
 			var throttledupdate = throttle(update, 500);
-			
+
 			var togglepart = function(part){
 				if(part.selected){
 					part.selected = false;
@@ -350,41 +350,41 @@
 					}
 				}
 			}
-			
-			ractive.on('selecthandler', function(e, part) {				
+
+			ractive.on('selecthandler', function(e, part) {
 				if(e.original.target.nodeName == 'INPUT'){
 					return true;
 				}
 				if(mousedown > 0 || e.original.type=='mousedown'){
 					togglepart(part);
-					
+
 					ractive.update('parts');
 					throttledupdate();
 				}
 			});
-			
+
 			ractive.on('selectall', function(e){
 				var selected = DeepNest.parts.filter(function(p){
 					return p.selected;
 				}).length;
-				
+
 				var toggleon = (selected < DeepNest.parts.length);
-				
+
 				DeepNest.parts.forEach(function(p){
 					if(p.selected != toggleon){
 						togglepart(p);
 					}
 					p.selected = toggleon;
 				});
-				
+
 				ractive.update('parts');
 				ractive.update('imports');
-				
+
 				if(DeepNest.imports.length > 0){
 					applyzoom();
 				}
 			});
-			
+
 			// applies svg zoom library to the currently visible import
 			applyzoom = function(){
 				if(DeepNest.imports.length > 0){
@@ -406,14 +406,14 @@
 								  maxZoom: 50,
 								  minZoom: 0.1
 							});
-							
+
 							if(zoom){
 								DeepNest.imports[i].zoom.zoom(zoom);
 							}
 							if(pan){
 								DeepNest.imports[i].zoom.pan(pan);
 							}
-							
+
 							document.querySelector('#import-'+i+' .zoomin').addEventListener('click', function(ev){
 							  ev.preventDefault();
 							  DeepNest.imports.find(function(e){
@@ -436,41 +436,41 @@
 					}
 				}
 			};
-						
+
 			ractive.on('importselecthandler', function (e, im) {
 				if(im.selected){
 					return false;
 				}
-				
+
 				DeepNest.imports.forEach(function(i){
 					i.selected = false;
-				});				
-				
+				});
+
 				im.selected = true;
 				ractive.update('imports');
 				applyzoom();
 			});
-			
+
 			ractive.on('importdelete', function(e,im){
 				var index = DeepNest.imports.indexOf(im);
 				DeepNest.imports.splice(index,1);
-				
+
 				if(DeepNest.imports.length > 0){
 					if(!DeepNest.imports[index]){
 						index = 0;
 					}
-					
+
 					DeepNest.imports[index].selected = true;
 				}
-				
-				
+
+
 				ractive.update('imports');
-				
+
 				if(DeepNest.imports.length > 0){
 					applyzoom();
 				}
 			});
-			
+
 			var deleteparts = function(e){
 				for(var i=0; i<DeepNest.parts.length; i++){
 					if(DeepNest.parts[i].selected){
@@ -484,40 +484,40 @@
 						i--;
 					}
 				}
-				
+
 				ractive.update('parts');
 				ractive.update('imports');
-				
+
 				if(DeepNest.imports.length > 0){
 					applyzoom();
 				}
-				
+
 				resize();
 			}
-			
+
 			ractive.on('delete', deleteparts);
 			document.body.addEventListener('keydown', function(e){
 				if(e.keyCode == 8 || e.keyCode == 46){
 					deleteparts();
 				}
 			});
-			
+
 			// sort table
 			var attachSort = function(){
 				var headers = document.querySelectorAll('#parts table thead th');
 				Array.from(headers).forEach(header => {
 					header.addEventListener('click', function(e) {
 						var sortfield = header.getAttribute('data-sort-field');
-						
+
 						if(!sortfield){
 							return false;
 						}
-						
+
 						var reverse = false;
 						if(this.className == 'asc'){
 							reverse = true;
 						}
-						
+
 						DeepNest.parts.sort(function(a, b){
 							  var av = a[sortfield];
 							  var bv = b[sortfield];
@@ -529,42 +529,42 @@
 							  }
 							  return 0;
 						});
-						
+
 						Array.from(headers).forEach(h => {
 							h.className = '';
 						});
-						
+
 						if(reverse){
 							this.className = 'desc';
 						}
 						else{
 							this.className = 'asc';
 						}
-						
+
 						ractive.update('parts');
 					});
 				});
 			}
-			
+
 			// file import
 			var electron = require('electron');
-			var app = electron.remote; 
+			var app = electron.remote;
 			var fs = require('fs');
-			
+
 			var importbutton = document.querySelector('#import');
 			importbutton.onclick = function(){
 				if(importbutton.className == 'button import disabled' || importbutton.className == 'button import spinner'){
 					return false;
 				}
-				
+
 				importbutton.className = 'button import disabled';
-				
+
 				setTimeout(function(){
 					var dialog = app.dialog;
 					dialog.showOpenDialog({ filters: [
-				
+
 					   { name: 'CAD formats', extensions: ['svg', 'dxf', 'cdr'] }
-				
+
 					  ]}, function (fileName) {
 						if(fileName === undefined){
 							importbutton.className = 'button import';
@@ -580,13 +580,13 @@
 							}
 							else{
 								importbutton.className = 'button import spinner';
-								
+
 								// send to conversion server
 								var url = config.getSync('conversionServer');
 								if(!url){
 									url = defaultConversionServer;
 								}
-								
+
 								var req = request.post(url, function (err, resp, body) {
 									importbutton.className = 'button import';
 									if (err) {
@@ -605,7 +605,7 @@
 												con = Number(config.getSync('dxfImportScale'));
 												dxfFlag = true;
 												console.log('con', con);
-												
+
 												/*if(unit == 'inch'){
 													con = 72;
 												}
@@ -614,7 +614,7 @@
 													con = 2.83465;
 												}*/
 											}
-											
+
 											// dirpath is used for loading images embedded in svg files
 											// converted svgs will not have images
 											importData(body, filename, null, con, dxfFlag);
@@ -627,12 +627,12 @@
 								form.append('fileUpload', fs.createReadStream(fileName[0]));
 							}
 						}
-						
+
 					});
 				}, 50);
-				
+
 			};
-			
+
 			function readFile(filepath){
 				fs.readFile(filepath, 'utf-8', function (err, data) {
 					  if(err){
@@ -641,11 +641,11 @@
 					  }
 					  var filename = path.basename(filepath);
 					  var dirpath = path.dirname(filepath);
-					  
+
 					  importData(data, filename, dirpath, null);
 				});
 			};
-			
+
 			function importData(data, filename, dirpath, scalingFactor, dxfFlag){
 				window.DeepNest.importsvg(filename, dirpath, data, scalingFactor, dxfFlag);
 
@@ -662,22 +662,22 @@
 				applyzoom();
 				resize();
 			}
-			
+
 			// part list resize
 			var resize = function (event) {
 				var parts = document.querySelector('#parts');
 				var table = document.querySelector('#parts table');
-				
+
 				if(event){
 					parts.style.width = event.rect.width + 'px';
 				}
-				
+
 				var home = document.querySelector('#home');
-				
+
 				var imports = document.querySelector('#imports');
 				imports.style.width = home.offsetWidth - (parts.offsetWidth-2) + 'px';
 				imports.style.left = (parts.offsetWidth-2) + 'px';
-				
+
 				var headers = document.querySelectorAll('#parts table th');
 				Array.from(headers).forEach(th => {
 					var span = th.querySelector('span');
@@ -686,43 +686,43 @@
 					}
 				});
 			}
-			
+
 			interact('.parts-drag')
 			.resizable({
 				preserveAspectRatio: false,
 				edges: { left: false, right: true, bottom: false, top: false }
 			})
 			.on('resizemove', resize);
-			
+
 			window.addEventListener('resize', function(){
 				resize();
 			});
-			
+
 			resize();
-			
+
 			// close message
 			var messageclose = document.querySelector('#message a.close');
 			messageclose.onclick = function(){
 				document.querySelector('#messagewrapper').className = '';
 				return false;
 			};
-			
+
 			// add rectangle
 			document.querySelector('#addrectangle').onclick = function(){
 				var tools = document.querySelector('#partstools');
 				var dialog = document.querySelector('#rectangledialog');
-				
+
 				tools.className = 'active';
 			};
-			
+
 			document.querySelector('#cancelrectangle').onclick = function(){
 				document.querySelector('#partstools').className = '';
 			};
-			
+
 			document.querySelector('#confirmrectangle').onclick = function(){
 				var width = document.querySelector('#rectanglewidth');
 				var height = document.querySelector('#rectangleheight');
-				
+
 				if(Number(width.value) <= 0){
 					width.className = 'error';
 					return false;
@@ -732,15 +732,15 @@
 					height.className = 'error';
 					return false;
 				}
-				
+
 				var units = config.getSync('units');
 				var conversion = config.getSync('scale');
-				
+
 				// remember, scale is stored in units/inch
 				if(units == 'mm'){
 					conversion /= 25.4;
 				}
-				
+
 				var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 				var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
 				rect.setAttribute('x',0);
@@ -749,37 +749,37 @@
 				rect.setAttribute('height',height.value*conversion);
 				svg.appendChild(rect);
 				DeepNest.importsvg(null, null, (new XMLSerializer()).serializeToString(svg));
-				
+
 				width.className = '';
 				height.className = '';
 				width.value = '';
 				height.value = '';
-				
+
 				document.querySelector('#partstools').className = '';
-				
+
 				ractive.update('parts');
 				resize();
 			};
-			
+
 			//var remote = require('remote');
 			//var windowManager = app.require('electron-window-manager');
-			
+
 			/*const BrowserWindow = app.BrowserWindow;
-			
+
 			const path = require('path');
 			const url = require('url');*/
-			
-			
-				
+
+
+
 				/*window.nestwindow = windowManager.createNew('nestwindow', 'Windows #2');
 				nestwindow.loadURL('./main/nest.html');
 				nestwindow.setAlwaysOnTop(true);
 				nestwindow.open();*/
-				
+
 				//const remote = require('electron').remote;
-				
+
 				/*window.nestwindow = new BrowserWindow({width: window.outerWidth*0.8, height: window.outerHeight*0.8, frame: true});
-				
+
 				nestwindow.loadURL(url.format({
 					pathname: path.join(__dirname, './nest.html'),
 					protocol: 'file:',
@@ -788,9 +788,9 @@
 				nestwindow.setAlwaysOnTop(true);
 				nestwindow.webContents.openDevTools();
 				nestwindow.parts = {wat: 'wat'};
-				
+
 				console.log(electron.ipcRenderer.sendSync('synchronous-message', 'ping'));*/
-			
+
 			// clear cache
 			var deleteCache = function() {
 			  var path = './nfpcache';
@@ -806,7 +806,7 @@
 				//fs.rmdirSync(path);
 			  }
 			};
-			
+
 			var startnest = function(){
 				/*function toClipperCoordinates(polygon){
 					var clone = [];
@@ -816,10 +816,10 @@
 							Y: polygon[i].y*10000000
 						});
 					}
-	
+
 					return clone;
 				};
-				
+
 				function toNestCoordinates(polygon, scale){
 					var clone = [];
 					for(var i=0; i<polygon.length; i++){
@@ -828,11 +828,11 @@
 							y: polygon[i].Y/scale
 						});
 					}
-	
+
 					return clone;
 				};
-				
-				
+
+
 				var Ac = toClipperCoordinates(DeepNest.parts[0].polygontree);
 				var Bc = toClipperCoordinates(DeepNest.parts[1].polygontree);
 				for(var i=0; i<Bc.length; i++){
@@ -841,7 +841,7 @@
 				}
 				var solution = ClipperLib.Clipper.MinkowskiSum(Ac, Bc, true);
 				//console.log(solution.length, solution);
-				
+
 				var clipperNfp = toNestCoordinates(solution[0], 10000000);
 				for(i=0; i<clipperNfp.length; i++){
 					clipperNfp[i].x += DeepNest.parts[1].polygontree[0].x;
@@ -849,14 +849,14 @@
 				}
 				//console.log(solution);
 				cpoly = clipperNfp;
-				
+
 				//cpoly =  .calculateNFP({A: DeepNest.parts[0].polygontree, B: DeepNest.parts[1].polygontree}).pop();
 				gpoly =  GeometryUtil.noFitPolygon(DeepNest.parts[0].polygontree, DeepNest.parts[1].polygontree, false, false).pop();
-				
+
 				var svg = DeepNest.imports[0].svg;
 				var polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
 				var polyline2 = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-				
+
 				for(var i=0; i<cpoly.length; i++){
 					var p = svg.createSVGPoint();
 					p.x = cpoly[i].x;
@@ -872,25 +872,25 @@
 				polyline.setAttribute('class', 'active');
 				svg.appendChild(polyline);
 				svg.appendChild(polyline2);
-				
+
 				ractive.update('imports');
 				applyzoom();
-				
+
 				return false;*/
-				
-				
+
+
 				for(var i=0; i<DeepNest.parts.length; i++){
 					if(DeepNest.parts[i].sheet){
 						// need at least one sheet
 						document.querySelector('#main').className = '';
 						document.querySelector('#nest').className = 'active';
-						
+
 						var displayCallback = function(){
 							// render latest nest if none are selected
 							var selected = this.DeepNest.nests.filter(function(n){
 								return n.selected;
 							});
-							
+
 							// only change focus if latest nest is selected
 							if(selected.length == 0 || (this.DeepNest.nests.length > 1 && this.DeepNest.nests[1].selected)){
 								this.DeepNest.nests.forEach(function(n){
@@ -899,21 +899,21 @@
 								displayNest(this.DeepNest.nests[0]);
 								this.DeepNest.nests[0].selected = true;
 							}
-							
+
 							this.nest.update('nests');
-							
+
 							// enable export button
 							document.querySelector('#export_wrapper').className = 'active';
 							document.querySelector('#export').className = 'button export';
 						}
-						
+
 						deleteCache();
-						
+
 						DeepNest.start(null, displayCallback.bind(window));
 						return;
 					}
 				}
-				
+
 				if(DeepNest.parts.length == 0){
 					message("Please import some parts first");
 				}
@@ -921,9 +921,9 @@
 					message("Please mark at least one part as the sheet");
 				}
 			}
-			
+
 			document.querySelector('#startnest').onclick = startnest;
-			
+
 			var stop = document.querySelector('#stopnest');
 			stop.onclick = function(e){
 				if(stop.className == 'button stop'){
@@ -948,10 +948,10 @@
 					startnest();
 				}
 			}
-			
+
 			var back = document.querySelector('#back');
 			back.onclick = function(e){
-						
+
 				setTimeout(function(){
 					if(DeepNest.working){
 						ipcRenderer.send('background-stop');
@@ -963,27 +963,27 @@
 					}
 					DeepNest.reset();
 					deleteCache();
-					
+
 					window.nest.update('nests');
 					document.querySelector('#nestdisplay').innerHTML = '';
 					stop.className = 'button stop';
 					stop.innerHTML = 'Stop nest';
-					
+
 					// disable export button
 					document.querySelector('#export_wrapper').className = '';
 					document.querySelector('#export').className = 'button export disabled';
-					
+
 				}, 2000);
-				
+
 				document.querySelector('#main').className = 'active';
 				document.querySelector('#nest').className = '';
 			}
-			
+
 			var exportbutton = document.querySelector('#export');
-			
+
 			var exportsvg = document.querySelector('#exportsvg');
 			exportsvg.onclick = function(){
-				
+
 				var dialog = app.dialog;
 				dialog.showSaveDialog({title: 'Export Deepnest SVG'}, function (fileName) {
 					if(fileName === undefined){
@@ -993,20 +993,20 @@
 						var selected = DeepNest.nests.filter(function(n){
 							return n.selected;
 						});
-						
+
 						if(selected.length == 0){
 							return false;
 						}
-						
+
 						fs.writeFileSync(fileName, exportNest(selected.pop()));
 					}
 				});
 			};
-			
+
 			var exportdxf = document.querySelector('#exportdxf');
 			exportdxf.onclick = function(){
 				var dialog = app.dialog;
-				dialog.showSaveDialog({title: 'Export Deepnest DXF'}, function (fileName) {
+				dialog.showSaveDialog({title: 'Export Nest DXF'}, function (fileName) {
 					if(fileName === undefined){
 						console.log("No file selected");
 					}
@@ -1014,7 +1014,7 @@
 						var selected = DeepNest.nests.filter(function(n){
 							return n.selected;
 						});
-						
+
 						if(selected.length == 0){
 							return false;
 						}
@@ -1023,9 +1023,9 @@
 						if(!url){
 							url = defaultConversionServer;
 						}
-						
+
 						exportbutton.className = 'button export spinner';
-						
+
 						var req = request.post(url, function (err, resp, body) {
 							exportbutton.className = 'button export';
 							if (err) {
@@ -1061,7 +1061,7 @@
 						var selected = DeepNest.nests.filter(function(n){
 							return n.selected;
 						});
-						
+
 						if(selected.length == 0){
 							return false;
 						}
@@ -1070,9 +1070,9 @@
 						if(!url){
 							url = defaultConversionServer;
 						}
-						
+
 						exportbutton.className = 'button export spinner';
-						
+
 						var req = request.post(url, function (err, resp, body) {
 							exportbutton.className = 'button export';
 							if (err) {
@@ -1096,40 +1096,40 @@
 					}
 				});
 			};*/
-			
+
 			// nest save
 			var exportNest = function(n, dxf){
-			
+
 				var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-				
+
 				var svgwidth = 0;
 				var svgheight = 0;
-				
+
 				// create elements if they don't exist, show them otherwise
 				n.placements.forEach(function(s){
 					var group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-					svg.appendChild(group);					
+					svg.appendChild(group);
 					/*DeepNest.parts[s.sheet].svgelements.forEach(function(e){
 						var node = e.cloneNode(false);
 						node.setAttribute('stroke', '#000');
 						node.setAttribute('fill', 'none');
 						group.appendChild(node);
 					});*/
-					
+
 					var sheetbounds = DeepNest.parts[s.sheet].bounds;
-					
+
 					group.setAttribute('transform', 'translate('+(-sheetbounds.x)+' '+(svgheight-sheetbounds.y)+')');
 					if(svgwidth < sheetbounds.width){
 						svgwidth = sheetbounds.width;
 					}
-					
+
 					s.sheetplacements.forEach(function(p){
 						var part = DeepNest.parts[p.source];
 						var partgroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-												
+
 						part.svgelements.forEach(function(e, index){
 							var node = e.cloneNode(false);
-							
+
 							if(n.tagName == 'image'){
 								var relpath = n.getAttribute('data-href');
 								if(relpath){
@@ -1139,39 +1139,39 @@
 							}
 							partgroup.appendChild(node);
 						});
-						
+
 						group.appendChild(partgroup);
-						
+
 						// position part
 						partgroup.setAttribute('transform','translate('+p.x+' '+p.y+') rotate('+p.rotation+')');
 					});
-					
+
 					// put next sheet below
 					svgheight += 1.1*sheetbounds.height;
 				});
-				
+
 				var scale = config.getSync('scale');
-				
+
 				if(dxf){
 					scale /= Number(config.getSync('dxfExportScale')); // inkscape on server side
 				}
-				
+
 				var units = config.getSync('units');
 				if(units == 'mm'){
 					scale /= 25.4;
 				}
-				
+
 				svg.setAttribute('width', (svgwidth/scale) + (units == 'inch' ? 'in' : 'mm'));
 				svg.setAttribute('height', (svgheight/scale) + (units == 'inch' ? 'in' : 'mm'));
 				svg.setAttribute('viewBox', '0 0 '+svgwidth+' '+svgheight);
-				
+
 				if(config.getSync('mergeLines') && n.mergedLength > 0){
 					SvgParser.applyTransform(svg);
 					SvgParser.flatten(svg);
 					SvgParser.splitLines(svg);
 					SvgParser.mergeOverlap(svg, 0.1*config.getSync('curveTolerance'));
 					SvgParser.mergeLines(svg);
-					
+
 					// set stroke and fill for all
                     var elements = Array.prototype.slice.call(svg.children);
                     elements.forEach(function(e){
@@ -1181,40 +1181,40 @@
                         }
                     });
 				}
-				
+
 				return (new XMLSerializer()).serializeToString(svg);
 			}
-			
+
 			// nesting display
-			
+
 			var displayNest = function(n){
 				// create svg if not exist
 				var svg = document.querySelector('#nestsvg');
-				
+
 				if(!svg){
 					svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 					svg.setAttribute('id', 'nestsvg');
 					document.querySelector('#nestdisplay').innerHTML = (new XMLSerializer()).serializeToString(svg);
 					svg = document.querySelector('#nestsvg');
 				}
-				
+
 				// remove active class from parts and sheets
 				document.querySelectorAll('#nestsvg .part').forEach(function(p){
 					p.setAttribute('class', 'part');
 				});
-				
+
 				document.querySelectorAll('#nestsvg .sheet').forEach(function(p){
 					p.setAttribute('class', 'sheet');
 				});
-				
+
 				// remove laser markers
 				document.querySelectorAll('#nestsvg .merged').forEach(function(p){
 					p.remove();
 				});
-				
+
 				var svgwidth = 0;
 				var svgheight = 0;
-				
+
 				// create elements if they don't exist, show them otherwise
 				n.placements.forEach(function(s){
 					var groupelement = document.querySelector('#sheet'+s.sheetid);
@@ -1222,10 +1222,10 @@
 						var group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
 						group.setAttribute('id', 'sheet'+s.sheetid);
 						group.setAttribute('data-index', s.sheetid);
-						
+
 						svg.appendChild(group);
 						groupelement = document.querySelector('#sheet'+s.sheetid);
-						
+
 						DeepNest.parts[s.sheet].svgelements.forEach(function(e){
 							var node = e.cloneNode(false);
 							node.setAttribute('stroke', '#ffffff');
@@ -1234,23 +1234,23 @@
 							groupelement.appendChild(node);
 						});
 					}
-					
+
 					// reset class (make visible)
 					groupelement.setAttribute('class', 'sheet active');
-					
+
 					var sheetbounds = DeepNest.parts[s.sheet].bounds;
 					groupelement.setAttribute('transform', 'translate('+(-sheetbounds.x)+' '+(svgheight-sheetbounds.y)+')');
 					if(svgwidth < sheetbounds.width){
 						svgwidth = sheetbounds.width;
 					}
-					
+
 					s.sheetplacements.forEach(function(p){
 						var partelement = document.querySelector('#part'+p.id);
 						if(!partelement){
 							var part = DeepNest.parts[p.source];
 							var partgroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
 							partgroup.setAttribute('id', 'part'+p.id);
-							
+
 							part.svgelements.forEach(function(e, index){
 								var node = e.cloneNode(false);
 								if(index == 0){
@@ -1264,42 +1264,42 @@
 								node.setAttribute('stroke', '#ffffff');
 								partgroup.appendChild(node);
 							});
-							
+
 							svg.appendChild(partgroup);
-							
+
 							if(!document.querySelector('#part'+p.source+'hatch')){
 								// make a nice hatch pattern
 								var pattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
 								pattern.setAttribute('id', 'part'+p.source+'hatch');
 								pattern.setAttribute('patternUnits', 'userSpaceOnUse');
-								
+
 								var psize = parseInt(DeepNest.parts[s.sheet].bounds.width/120);
-								
+
 								psize = psize || 10;
-								
+
 								pattern.setAttribute('width', psize);
 								pattern.setAttribute('height', psize);
 								var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
 								path.setAttribute('d', 'M-1,1 l2,-2 M0,'+psize+' l'+psize+',-'+psize+' M'+(psize-1)+','+(psize+1)+' l2,-2');
 								path.setAttribute('style', 'stroke: hsl('+(360*(p.source/DeepNest.parts.length))+', 100%, 80%) !important; stroke-width:1');
 								pattern.appendChild(path);
-								
+
 								groupelement.appendChild(pattern);
 							}
-							
+
 							partelement = document.querySelector('#part'+p.id);
 						}
 						else{
 							// ensure correct z layering
 							svg.appendChild(partelement);
 						}
-						
+
 						// reset class (make visible)
 						partelement.setAttribute('class', 'part active');
-						
+
 						// position part
 						partelement.setAttribute('style','transform: translate('+(p.x-sheetbounds.x)+'px, '+(p.y+svgheight-sheetbounds.y)+'px) rotate('+p.rotation+'deg)');
-						
+
 						// add merge lines
 						if(p.mergedSegments && p.mergedSegments.length > 0){
 							for(var i=0; i<p.mergedSegments.length; i++){
@@ -1315,22 +1315,22 @@
 							}
 						}
 					});
-					
+
 					// put next sheet below
 					svgheight += 1.1*sheetbounds.height;
 				});
-				
+
 				setTimeout(function(){
 				document.querySelectorAll('#nestsvg .merged').forEach(function(p){
 					p.setAttribute('class','merged active');
 				});
 				}, 1500);
-				
+
 				svg.setAttribute('width', '100%');
 				svg.setAttribute('height', '100%');
 				svg.setAttribute('viewBox', '0 0 '+svgwidth+' '+svgheight);
 			}
-			
+
 			window.nest = new Ractive({
 				el: '#nestcontent',
 				//magic: true,
@@ -1361,25 +1361,25 @@
 						var selected = ne.filter(function(n){
 							return n.selected;
 						});
-						
+
 						if(selected.length == 0){
 							return '';
 						}
-						
+
 						selected = selected.pop();
-						
+
 						var num = 0;
 						for(var i=0; i<selected.placements.length; i++){
 							num += selected.placements[i].sheetplacements.length;
 						}
-						
+
 						var total = 0;
 						for(i=0; i<DeepNest.parts.length; i++){
 							if(!DeepNest.parts[i].sheet){
 								total += DeepNest.parts[i].quantity;
 							}
 						}
-						
+
 						return num + '/' + total;
 					},
 					getTimeSaved: function(){
@@ -1387,24 +1387,24 @@
 						var selected = ne.filter(function(n){
 							return n.selected;
 						});
-						
+
 						if(selected.length == 0){
 							return '0 seconds';
 						}
-						
+
 						selected = selected.pop();
-						
+
 						var totalLength = selected.mergedLength;
-									
-						var scale = config.getSync('scale');						
+
+						var scale = config.getSync('scale');
 						var lengthinches = totalLength/scale;
-												
+
 						var seconds = lengthinches/2; // assume 2 inches per second cut speed
 						return millisecondsToStr(seconds*1000);
 					}
 				}
 			});
-			
+
 			nest.on('selectnest', function(e, n) {
 				for(var i=0; i<DeepNest.nests.length; i++){
 					DeepNest.nests[i].selected = false;
@@ -1413,7 +1413,7 @@
 				window.nest.update('nests');
 				displayNest(n);
 			});
-			
+
 			// prevent drag/drop default behavior
 			document.ondragover = document.ondrop = (ev) => {
 			  ev.preventDefault();
@@ -1422,15 +1422,15 @@
 			document.body.ondrop = (ev) => {
 			  ev.preventDefault();
 			}
-						
+
 			var windowManager = app.require('electron-window-manager');
-			
+
 			const BrowserWindow = app.BrowserWindow;
 			const url = require('url');
-			
+
 			window.loginWindow = null;
 		});
-		
+
 		ipcRenderer.on('background-progress', (event, p) => {
 			/*var bar = document.querySelector('#progress'+p.index);
 			if(p.progress < 0 && bar){
@@ -1439,18 +1439,18 @@
 				bar.removeAttribute('id');
 				return;
 			}
-			
+
 			if(!bar){
 				bar = document.querySelector('li.progress:not(.active)');
 				bar.setAttribute('id', 'progress'+p.index);
 				bar.className = 'progress active';
 			}
-			
+
 			bar.querySelector('.bar').setAttribute('style', 'stroke-dashoffset: ' + parseInt((1-p.progress)*111));*/
 			var bar = document.querySelector('#progressbar');
 			bar.setAttribute('style', 'width: '+parseInt(p.progress*100)+'%'+(p.progress < 0.01 ? '; transition: none' : ''));
 		});
-		
+
 		function message(txt, error){
 			var message = document.querySelector('#message');
 			if(error){
@@ -1466,7 +1466,7 @@
 			var content = document.querySelector('#messagecontent');
 			content.innerHTML = txt;
 		}
-		
+
 		_now = Date.now || function() { return new Date().getTime(); };
 
 		throttle = function(func, wait, options) {
@@ -1498,7 +1498,7 @@
 			  return result;
 			};
 		  };
-		  
+
 		  function millisecondsToStr (milliseconds) {
 				function numberEnding (number) {
 					return (number > 1) ? 's' : '';
@@ -1525,10 +1525,10 @@
 				if (seconds) {
 					return seconds + ' second' + numberEnding(seconds);
 				}
-				
+
 				return '0 seconds';
 			}
-		  
+
 		  //var addon = require('../build/Release/addon');
 		</script>
 	</head>
@@ -1545,7 +1545,7 @@
 			</ul>
 			</span>
 			<li class="button back" id="back">Back</li>
-			
+
 			<!-- progress bars -->
 			<li class="progress">
 				<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
@@ -1556,14 +1556,14 @@
 			</li>
 
 		</ul>
-		
+
 		<div id="progressbar_wrapper">
 			<div id="progressbar"></div>
 		</div>
-		
+
 		<div id="nestcontent"></div>
 		<div id="nestdisplay"></div>
-		
+
 		<script id="nest-template" type="text/ractive">
 			<div id="nestinfo" class='{{ nests.length > 0 ? "active" : "" }}'>
 				<div class="group"><h1>{{ getSelected().length > 0 ? getSelected()[0].placements.length : '-' }}</h1><span class="label">{{ getSelected().length > 0 ? (getSelected()[0].placements.length > 1 ? 'sheets used' : 'sheet used') : '' }}</span></div>
@@ -1580,18 +1580,18 @@
 						</span>
 					</span>
 					{{/each}}
-				</div>	
+				</div>
 			</div>
 		</script>
 	</div>
-	
+
 	<div id="messagewrapper">
 		<div id="message">
 		<a href="#" class="button close"></a>
 		<div id="messagecontent"></div>
 		</div>
 	</div>
-	
+
 	<div id="main" class="active">
 		<ul id="sidenav">
 		<li id="home_tab" class="active" data-page="home"></li>
@@ -1599,19 +1599,19 @@
 		<!--<li id="account_tab" data-page="account"></li>-->
 		<li id="info_tab" data-page="info"></li>
 		</ul>
-		
+
 		<div id="home" class="page active">
-			
+
 			<div id="homecontent"></div>
-			
+
 			<script id="template-part-list" type="text/ractive">
 				<ul class="topnav">
 					<li class="button import" id="import">Import</li>
 					<li class="button start {{ getSheets().length == 0 ? "disabled" : "" }}" id="startnest">Start nest</li>
 				</ul>
-				
+
 				<div id="parts" class="parts-drag">
-					
+
 					<div id="partscroll">
 						<table>
 							<thead>
@@ -1634,23 +1634,23 @@
 							</tbody>
 						</table>
 					</div>
-					
+
 					<div id="partstools">
 						<a href="#" class="button addrectangle" id="addrectangle">&nbsp;</a>
 						<a href="#" class='button delete {{ getSelected().length == 0 ? "disabled" : "" }}' on-click="delete">&nbsp;</a>
 						<a href="#" class="button {{ parts.length == 0 ? "disabled" : "" }}" id="selectall" on-click="selectall">{{ getSelected().length == parts.length ? 'Deselect' : 'Select' }} all</a>
-						
+
 						<div id="rectangledialog">
 						<h2>Add Rectangle</h2>
 						<span class="row"><span class="label">width</span> <input type="number" min="0" id="rectanglewidth" required /> {{ getUnits }}</span>
 						<span class="row"><span class="label">height</span> <input type="number" min="0" id="rectangleheight" required /> {{ getUnits }}</span>
-						
+
 						<a href="#" class="button add" id="confirmrectangle">Add</a>
 						<a href="#" class="button" id="cancelrectangle">Cancel</a>
 						</div>
 					</div>
 				</div>
-				
+
 				<div id="imports">
 					{{#if imports.length > 0}}
 					<ul id="importsnav">
@@ -1659,51 +1659,51 @@
 								{{ filename }}
 								<a href="#" class="close" on-click="importdelete:{{this}}"></a>
 							</li>
-						{{/each}}	
+						{{/each}}
 					</ul>
 					{{/if}}
-					
+
 					{{#each imports:i}}
 						<div id="import-{{i}}" class='import {{ selected ? "active" : "" }}'>
 							{{{ serializeSvg(svg) }}}
-							
+
 							<div class="zoomtools">
 							<a href="#" class="zoomreset"></a>
 							<a href="#" class="zoomin"></a>
 							<a href="#" class="zoomout"></a>
 							</div>
 						</div>
-					{{/each}}	
+					{{/each}}
 				</div>
 			</script>
 		</div>
-		
+
 		<div id="config" class="page">
 			<form id="configform">
 				<h1>Nesting configuration</h1>
-				
+
 				<dl class="formgroup">
 					<dt>Display units</dt>
 					<dd>
 						<input type="radio" name="units" value="inch" checked data-config="units" /> <span class="radiolabel">inches</span>
 						<input type="radio" name="units" value="mm" data-config="units" /> <span class="radiolabel">mm</span>
 					</dd>
-					
+
 					<dt>Space between parts</dt>
 					<dd>
 						<input type="number" value="0" min="0" step="any" data-config="spacing" data-conversion="true" required /> <i><span class="unit-label">inch</span></i>
 					</dd>
-					
+
 					<dt>Curve tolerance</dt>
 					<dd>
 						<input type="number" value="0.3" min="0" step="any" data-config="curveTolerance" data-conversion="true" required /> <i><span class="unit-label">inch</span></i>
 					</dd>
-					
+
 					<dt>Part rotations</dt>
 					<dd>
 						<input type="number" value="4" step="1" min="1" max="32" data-config="rotations" required />
 					</dd>
-					
+
 					<dt>Optimization type</dt>
 					<dd>
 						<select name="placementType" data-config="placementType">
@@ -1712,30 +1712,30 @@
 							<option value="convexhull">Squeeze</option>
 						</select>
 					</dd>
-					
+
 					<dt>Use rough approximation</dt>
 					<dd>
 						<input type="checkbox" data-config="simplify" />
 					</dd>
-					
+
 					<dt>CPU cores</dt>
 					<dd>
 						<input type="number" value="4" step="1" min="1" max="8" data-config="threads" required />
 					</dd>
 				</dl>
-				
+
 				<h1>Import/Export</h1>
 				<dl class="formgroup">
 					<dt>SVG scale</dt>
 					<dd>
 						<input id="inputscale" type="number" value="72" min="1" step="any" data-config="scale" required /> <i>units/<span class="unit-label">inch</span></i>
 					</dd>
-					
+
 					<dt>Endpoint tolerance</dt>
 					<dd>
 						<input type="number" value="0.3" min="0" step="any" data-config="endpointTolerance" data-conversion="true" required /> <i><span class="unit-label">inch</span></i>
 					</dd>
-					
+
 					<dt>DXF import units</dt>
 					<dd>
 						<select name="dxfImportScale" data-config="dxfImportScale">
@@ -1746,7 +1746,7 @@
 							<option value="28.3465">cm</option>
 						</select>
 					</dd>
-					
+
 					<dt>DXF export units</dt>
 					<dd>
 						<select name="dxfExportScale" data-config="dxfExportScale">
@@ -1758,40 +1758,40 @@
 						</select>
 					</dd>
 				</dl>
-				
+
 				<h1>Laser options</h1>
 				<dl class="formgroup">
 					<dt>Merge common lines</dt>
 					<dd>
 						<input type="checkbox" checked="checked" data-config="mergeLines" />
 					</dd>
-					
+
 					<dt>Optimization ratio</dt>
 					<dd>
 						<input type="number" value="0.5" min="0" max="1" step="any" data-config="timeRatio" required />
 					</dd>
 				</dl>
-				
+
 				<h1>Meta-heuristic fine tuning</h1>
 				<dl class="formgroup">
 					<dt>GA population</dt>
 					<dd>
 						<input type="number" value="10" step="1" min="3" data-config="populationSize" required />
 					</dd>
-					
+
 					<dt>GA mutation rate</dt>
 					<dd>
 						<input type="number" value="10" step="1" min="1" max="50" data-config="mutationRate" required />
 					</dd>
 				</dl>
-				
+
 				<div style="padding: 0 0 5em 0">
 				<a href="#" id="setdefault">set all to default</a>
 				</div>
 			</form>
-			
+
 			<div class="config_explain" id="explain_units">
-			
+
 			<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 width="551.291px" height="285px" viewBox="0 0 551.291 285" enable-background="new 0 0 551.291 285" xml:space="preserve">
 <path fill="none" stroke="#B5BCC9" stroke-width="2" stroke-miterlimit="10" d="M260.474,53.718H19.528
@@ -1813,9 +1813,9 @@
 				<h1>Units</h1>
 				Whether to work in metric or imperial. This affects display only, and not import or export.
 			</div>
-			
+
 			<div class="config_explain" id="explain_spacing">
-				
+
 				<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 				 width="551.291px" height="285px" viewBox="-5 -5 561.291 295" enable-background="new 0 0 551.291 285" xml:space="preserve">
 			<path fill="none" stroke="#B5BCC9" stroke-width="2" stroke-miterlimit="10" d="M255.119,0H14.173C6.346,0,0,6.346,0,14.174
@@ -1835,11 +1835,11 @@
 			<line fill="none" stroke="#B5BCC9" stroke-width="2" stroke-linecap="round" stroke-miterlimit="10" x1="287" y1="246.303" x2="295.955" y2="255.258"/>
 			<line fill="none" stroke="#B5BCC9" stroke-width="2" stroke-linecap="round" stroke-miterlimit="10" x1="287" y1="246.303" x2="295.809" y2="237.493"/>
 			</svg>
-			
+
 				<h1>Space between parts</h1>
 				The minimum amount of space between each part. If you're planning on using the merge common lines feature, set this to zero.
 			</div>
-			
+
 			<div class="config_explain" id="explain_scale">
 			<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 width="551.291px" height="285px" viewBox="0 0 551.291 285" enable-background="new 0 0 551.291 285" xml:space="preserve">
@@ -1892,7 +1892,7 @@
 				This is the conversion factor between inches/mm to SVG units. Set to 72 units/inch for Illustrator and 90 units/inch for Inkscape.<br /><br />
 				Normally the scaling factor can be extracted from the SVG file itself, but when not available this value is used.
 			</div>
-			
+
 			<div class="config_explain" id="explain_curveTolerance">
 <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 width="571.58px" height="469.585px" viewBox="0 0 571.58 469.585" enable-background="new 0 0 571.58 469.585"
@@ -1913,7 +1913,7 @@
 				<h1>Curve tolerance</h1>
 				When computing a nest, curved sections must be turned into line segments. Curve tolerance is the maximum acceptable error when performing this approximation. Set to a higher value to speed up the nesting process, and a lower value when more precision is required.
 			</div>
-			
+
 			<div class="config_explain" id="explain_endpointTolerance">
 			<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 width="864px" height="864px" viewBox="0 0 864 864" enable-background="new 0 0 864 864" xml:space="preserve">
@@ -2104,8 +2104,8 @@
 	 M235.031,134.092c-6.19,4.424-15.148,5.719-22.142,2.499c-2.475-1.14-6.275-3.585-6.898-6.488
 	c-0.542-2.524,3.672-5.455,5.485-6.512c5.411-3.153,12.334-3.078,18.114-1.019c2.928,1.043,6.185,2.656,8.286,4.991
 	C240.382,130.343,237.244,132.498,235.031,134.092"/>
-<polygon fill="none" stroke="#B5BCC9" stroke-width="2" stroke-miterlimit="10" points="432.973,4 384.89,26.076 341.765,56.716 
-	329.928,77.26 325.073,129.868 330.021,182.476 342.096,201.555 385.016,233.518 433.04,255.545 456.757,255.537 504.755,233.454 
+<polygon fill="none" stroke="#B5BCC9" stroke-width="2" stroke-miterlimit="10" points="432.973,4 384.89,26.076 341.765,56.716
+	329.928,77.26 325.073,129.868 330.021,182.476 342.096,201.555 385.016,233.518 433.04,255.545 456.757,255.537 504.755,233.454
 	547.848,202.88 559.701,182.344 564.58,129.736 559.665,77.125 547.804,56.588 504.694,26.05 456.681,4 "/>
 <line fill="none" stroke="#B5BCC9" stroke-width="2" stroke-linecap="round" stroke-miterlimit="10" x1="272.29" y1="128.886" x2="302.29" y2="128.886"/>
 <line fill="none" stroke="#B5BCC9" stroke-width="2" stroke-linecap="round" stroke-miterlimit="10" x1="302.29" y1="128.886" x2="291.029" y2="117.625"/>
@@ -2116,7 +2116,7 @@
 				Certain geometries can be very time consuming to compute, eg. several hundred unique snowflakes. You may wish to use a simple polygon approximation to speed up the process, at the cost of greater material use.<br /><br />
 				If your vector not unique (ie. several hundred identical snowflakes) using the "quantity" field is another way to speed up the process dramatically.
 			</div>
-			
+
 			<div class="config_explain" id="explain_rotations">
 			<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 width="571.58px" height="621.077px" viewBox="0 0 571.58 621.077" enable-background="new 0 0 571.58 621.077"
@@ -2182,7 +2182,7 @@
 				<h1>Rotations</h1>
 				The number of rotations to try when inserting a part. For example, if 8 rotations are used some parts will have a 45 degree angle. 4 rotations is generally enough, and ensures that common lines are easily merged for rectangular parts. Higher rotations may help if you have extremely irregular parts.
 			</div>
-			
+
 			<div class="config_explain" id="explain_placementType">
 <svg version="1.1" style="width: 155%" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 width="798px" height="332px" viewBox="0 0 798 332" enable-background="new 0 0 798 332" xml:space="preserve">
@@ -2255,7 +2255,7 @@
 	C625.033,75.802,623.314,77.521,623.314,79.64z M648.268,91.157c0,5.299-4.297,9.598-9.598,9.598s-9.598-4.299-9.598-9.598
 	c0-5.301,4.297-9.598,9.598-9.598S648.268,85.856,648.268,91.157z"/>
 <rect x="564.658" y="36.591" fill="none" stroke="#B4BBC8" stroke-width="2" stroke-miterlimit="10" width="227.342" height="227.34"/>
-<polygon fill="none" stroke="#EC2158" stroke-width="2" stroke-miterlimit="10" points="623.314,36.591 738.48,115.271 
+<polygon fill="none" stroke="#EC2158" stroke-width="2" stroke-miterlimit="10" points="623.314,36.591 738.48,115.271
 	738.48,190.126 680.896,188.21 565.73,110.173 565.73,36.591 "/>
 <g>
 	<path fill="#EC2158" d="M114.187,303.34v-15.621h-5.658v-2.091c0.738,0,1.456-0.057,2.153-0.169
@@ -2295,15 +2295,15 @@
 
 				<h2>1. Gravity</h2>
 				Minimize the <em>width</em> of the nest. It's good for when you have a rectangular sheet and wish to use the left overs for another cut.
-			
+
 				<h2>2. Bounding Box</h2>
 				Reduce the overall <em>rectangular bounds</em>. This mode is best for conserving material when only a small portion of the sheet is used.
-				
+
 
 				<h2>3. Squeeze</h2>
 				Reduce the overall <em>area</em>, but may produce nests that aren't rectangular. It is best used for irregularly shaped sheets, or when all sheets will be filled with no space left behind.
 			</div>
-			
+
 			<div class="config_explain" id="explain_threads">
 			<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 width="454.586px" height="195.099px" viewBox="0 0 454.586 195.099" enable-background="new 0 0 454.586 195.099"
@@ -2322,9 +2322,9 @@
 				<h1>CPU Cores</h1>
 				The number of concurrent nesting processes. 2 for most laptops and 4 for most desktops.
 			</div>
-			
+
 			<div class="config_explain" id="explain_mergeLines">
-			
+
 			<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 width="441px" height="350px" viewBox="0 0 441 350" enable-background="new 0 0 441 350" xml:space="preserve">
 <path fill="none" stroke="#B5BCC9" stroke-width="2" stroke-miterlimit="10" d="M216.674,13.299C216.674,7.06,211.616,2,205.376,2
@@ -2345,7 +2345,7 @@
 	C414.401,231.829,401.754,244.475,386.154,244.475z"/>
 <g>
 	<g>
-		
+
 			<line fill="#B5BCC9" stroke="#B5BCC9" stroke-width="2" stroke-miterlimit="10" x1="216.674" y1="13.299" x2="216.674" y2="15.799"/>
 	</g>
 	<g>
@@ -2355,13 +2355,13 @@
 			 M216.674,30.477v4.893 M216.674,20.692v4.893"/>
 	</g>
 	<g>
-		
+
 			<line fill="#B5BCC9" stroke="#B5BCC9" stroke-width="2" stroke-miterlimit="10" x1="216.674" y1="157.68" x2="216.674" y2="160.18"/>
 	</g>
 </g>
 <g>
 	<g>
-		
+
 			<line fill="#B5BCC9" stroke="#B5BCC9" stroke-width="2" stroke-miterlimit="10" x1="216.674" y1="182.436" x2="216.674" y2="184.936"/>
 	</g>
 	<g>
@@ -2371,13 +2371,13 @@
 			 M216.674,199.613v4.893 M216.674,189.829v4.893"/>
 	</g>
 	<g>
-		
+
 			<line fill="#B5BCC9" stroke="#B5BCC9" stroke-width="2" stroke-miterlimit="10" x1="216.674" y1="326.816" x2="216.674" y2="329.316"/>
 	</g>
 </g>
 <g>
 	<g>
-		
+
 			<line fill="#B5BCC9" stroke="#B5BCC9" stroke-width="2" stroke-miterlimit="10" x1="417.55" y1="171.034" x2="420.05" y2="171.034"/>
 	</g>
 	<g>
@@ -2388,13 +2388,13 @@
 			 M235.53,171.034h5.056"/>
 	</g>
 	<g>
-		
+
 			<line fill="#B5BCC9" stroke="#B5BCC9" stroke-width="2" stroke-miterlimit="10" x1="227.974" y1="171.034" x2="230.474" y2="171.034"/>
 	</g>
 </g>
 <g>
 	<g>
-		
+
 			<line fill="#B5BCC9" stroke="#B5BCC9" stroke-width="2" stroke-miterlimit="10" x1="203.073" y1="171.034" x2="205.573" y2="171.034"/>
 	</g>
 	<g>
@@ -2405,7 +2405,7 @@
 			h5.056"/>
 	</g>
 	<g>
-		
+
 			<line fill="#B5BCC9" stroke="#B5BCC9" stroke-width="2" stroke-miterlimit="10" x1="13.497" y1="171.034" x2="15.997" y2="171.034"/>
 	</g>
 </g>
@@ -2414,9 +2414,9 @@
 				<h1>Merge common lines</h1>
 				If set, part edges that touch will be merged into a single line in the export. Merging common lines ensure that the laser only passes over each line a single time, reducing cut time and heat warping.
 			</div>
-			
+
 			<div class="config_explain" id="explain_timeRatio">
-			
+
 			<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 width="517px" height="301px" viewBox="0 0 517 301" enable-background="new 0 0 517 301" xml:space="preserve">
 <g>
@@ -2483,9 +2483,9 @@
 				<h1>Optimization ratio</h1>
 				When placing each part, the program has to decide between whether saving time or material is more important. When the optimization ratio is 0, only material savings are considered. When the ratio is 1, time savings are considered as important as material savings.
 			</div>
-			
+
 			<div class="config_explain" id="explain_populationSize">
-			
+
 			<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 width="471.085px" height="514.583px" viewBox="0 0 471.085 514.583" enable-background="new 0 0 471.085 514.583"
 	 xml:space="preserve">
@@ -2671,9 +2671,9 @@
 				<h1>Genetic population size</h1>
 				Genetic algorithms are a form of machine learning that mimics biological evolution. A smaller population size may lead to results more quickly but will have less genetic diversity. A larger population size could give better results, at the cost of more processing time.
 			</div>
-			
+
 			<div class="config_explain" id="explain_mutationRate">
-			
+
 			<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 width="339px" height="309px" viewBox="0 0 339 309" enable-background="new 0 0 339 309" xml:space="preserve">
 <line fill="none" stroke="#B5BCC9" stroke-width="2" stroke-linecap="round" stroke-miterlimit="10" x1="73.283" y1="36.633" x2="50.273" y2="36.633"/>
@@ -2838,18 +2838,18 @@
 				<h1>Genetic mutation rate</h1>
 				How much to mutate the population in each successive trial. A higher mutation rate ensures that a large variety of nest arrangements are tried, but reduces the ability of the algorithm to build upon previous successes. Increase this value if there are obvious arrangements that it does not seem to explore.
 			</div>
-			
-		</div>
-		
-		
-		<div id="account" class="page">
-			<a href="#" id="purchaseSingle">One credit</a>
 
 		</div>
-		
-		
+
+
+		<!--<div id="account" class="page">
+			<a href="#" id="purchaseSingle">One credit</a>
+
+		</div>-->
+
+
 		<div id="info" class="page" style="text-align: center">
-		<svg style="max-width: 20em; width: 75%; display: block; margin: 2em auto 0 auto" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+		<!--<svg style="max-width: 20em; width: 75%; display: block; margin: 2em auto 0 auto" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 		 width="283.46px" height="283.46px" viewBox="0 0 283.46 283.46" enable-background="new 0 0 283.46 283.46" xml:space="preserve">
 	<path class="fill" opacity="0.25" fill="none" stroke="#53B7DB" stroke-width="2.5" stroke-miterlimit="10" d="M58.207,177.084
 		c19.709,0,35.742-16.035,35.742-35.746c0-19.709-16.033-35.742-35.742-35.742s-35.742,16.033-35.742,35.742
@@ -2933,20 +2933,20 @@
 			C208.187,262.764,262.552,208.403,262.552,141.338z"/>
 		<circle fill="none" stroke="#26A7DF" stroke-width="2.5" stroke-miterlimit="10" cx="122.607" cy="80.139" r="25.865"/>
 		<circle fill="none" stroke="#26A7DF" stroke-width="2.5" stroke-miterlimit="10" cx="122.607" cy="202.54" r="25.865"/>
-		
+
 			<line fill="none" stroke="#26A7DF" stroke-width="2.5" stroke-miterlimit="10" x1="148.472" y1="80.139" x2="148.472" y2="202.54"/>
-		
+
 			<rect x="127.33" y="67.287" transform="matrix(0.7071 -0.7071 0.7071 0.7071 -33.3954 140.7444)" fill="none" stroke="#26A7DF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" width="51.732" height="86.793"/>
-		
+
 			<rect x="127.269" y="128.699" transform="matrix(0.7071 0.7071 -0.7071 0.7071 166.5478 -57.8764)" fill="none" stroke="#26A7DF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" width="51.731" height="86.792"/>
 		<line fill="none" stroke="#26A7DF" stroke-width="2.5" stroke-miterlimit="10" x1="96.32" y1="202.198" x2="96.32" y2="79.799"/>
 		<circle fill="none" stroke="#26A7DF" stroke-width="2.5" stroke-miterlimit="10" cx="183.807" cy="141.338" r="25.866"/>
 	</g>
-	</svg>
-			<h1 style="margin: 0 0 0.2em 0; font-size: 3em; color:#26A9E0; text-align: center">Deepnest</h1>
-			
+</svg>-->
+			<h1 style="margin: 0 0 0.2em 0; font-size: 3em; color:#32a852; text-align: center">Nestimate</h1>
+
 			v<span id="package-version"></span>
-			
+
 		</div>
 	</div>
 	</body>
